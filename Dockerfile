@@ -10,13 +10,21 @@ ENV PHPIZE_DEPS \
     gcc \
     libc-dev \
     pcre-dev \
-    make
+    make \
+    freetype-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libpng \
+    libjpeg-turbo
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
 RUN apk add --no-cache --virtual .persistent-deps \
     # for mcrypt extension
-    libmcrypt-dev
+    libmcrypt-dev \
+    freetype \
+    libpng \
+    libjpeg-turbo 
 
 RUN set -xe \
     && apk add --no-cache --update libmemcached-libs zlib \
@@ -27,6 +35,12 @@ RUN set -xe \
     && echo "extension=memcached.so" > /usr/local/etc/php/conf.d/20_memcached.ini \
     && docker-php-ext-configure pdo_mysql --with-pdo-mysql \
     && docker-php-ext-configure mbstring --enable-mbstring \
+    && docker-php-ext-configure gd \
+            --with-gd \
+            --with-freetype-dir=/usr/include/ \
+            --with-png-dir=/usr/include/ \
+            --with-jpeg-dir=/usr/include/ \
+    && NPROC=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || 1) \
     && docker-php-ext-enable xdebug \
     && docker-php-ext-install \
         mcrypt \
@@ -35,6 +49,7 @@ RUN set -xe \
         mbstring \
         sockets \
         opcache \
+        -j${NPROC} gd \
     && apk del .build-deps .memcached-deps \
     && rm -rf /tmp/*
 
