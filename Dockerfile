@@ -17,22 +17,22 @@ ENV PHPIZE_DEPS \
     libpng \
     libjpeg-turbo
 
-ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
+ENV MEMCACHE_DEPS zlib-dev
 
 RUN apk add --no-cache --virtual .persistent-deps \
     # for mcrypt extension
     libmcrypt-dev \
     freetype \
     libpng \
-    libjpeg-turbo 
+    libjpeg-turbo
 
 RUN set -xe \
-    && apk add --no-cache --update libmemcached-libs zlib \
+    && apk add --no-cache --update zlib \
     && apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
-    && apk add --no-cache --update --virtual .memcached-deps $MEMCACHED_DEPS \
-    && pecl install memcached-2.2.0 xdebug\
-    && echo "extension=memcached.so" > /usr/local/etc/php/conf.d/20_memcached.ini \
+    && apk add --no-cache --update --virtual .memcache-deps $MEMCACHE_DEPS \
+    && pecl install memcache xdebug\
+    && echo "extension=memcache.so" > /usr/local/etc/php/conf.d/20_memcache.ini \
     && docker-php-ext-configure pdo_mysql --with-pdo-mysql \
     && docker-php-ext-configure mbstring --enable-mbstring \
     && docker-php-ext-configure gd \
@@ -50,7 +50,7 @@ RUN set -xe \
         sockets \
         opcache \
         -j${NPROC} gd \
-    && apk del .build-deps .memcached-deps \
+    && apk del .build-deps .memcache-deps \
     && rm -rf /tmp/*
 
 RUN set -xe \
