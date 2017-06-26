@@ -1,4 +1,4 @@
-FROM php:5.6-fpm-alpine
+FROM php:7.0-fpm-alpine
 
 LABEL maintainer "alihan93.93@gmail.com"
 
@@ -10,23 +10,37 @@ ENV PHPIZE_DEPS \
     gcc \
     libc-dev \
     pcre-dev \
-    make
+    make \
+    freetype-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libpng \
+    libjpeg-turbo
 
 ENV MEMCACHED_DEPS zlib-dev libmemcached-dev cyrus-sasl-dev
 
 RUN apk add --no-cache --virtual .persistent-deps \
     # for mcrypt extension
-    libmcrypt-dev
+    libmcrypt-dev \
+    freetype \
+    libpng \
+    libjpeg-turbo 
 
 RUN set -xe \
     && apk add --no-cache --update libmemcached-libs zlib \
     && apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
     && apk add --no-cache --update --virtual .memcached-deps $MEMCACHED_DEPS \
-    && pecl install memcached-2.2.0 xdebug\
+    && pecl install memcached xdebug\
     && echo "extension=memcached.so" > /usr/local/etc/php/conf.d/20_memcached.ini \
     && docker-php-ext-configure pdo_mysql --with-pdo-mysql \
     && docker-php-ext-configure mbstring --enable-mbstring \
+    && docker-php-ext-configure gd \
+            --with-gd \
+            --with-freetype-dir=/usr/include/ \
+            --with-png-dir=/usr/include/ \
+            --with-jpeg-dir=/usr/include/ \
+    && NPROC=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || 1) \
     && docker-php-ext-enable xdebug \
     && docker-php-ext-install \
         mcrypt \
@@ -35,6 +49,7 @@ RUN set -xe \
         mbstring \
         sockets \
         opcache \
+        -j${NPROC} gd \
     && apk del .build-deps .memcached-deps \
     && rm -rf /tmp/*
 
